@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/* Colours = Anjakha logo only: graphite grey #666666 and amber #FDB931 (plus their tints/shades).
+   Token names are kept from the original layout so no markup changes:
+   "plum-*" = logo grey scale, "lilac-*" = logo amber scale.
+   Font: Montserrat, as used on anjakhahospitals.com */
+@theme {
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+
+  --color-plum-950: #242424;
+  --color-plum-900: #2e2e2e;
+  --color-plum-800: #3a3a3a;
+  --color-plum-700: #4d4d4d;
+  --color-plum-600: #666666;
+  --color-plum-500: #808080;
+
+  --color-lilac-500: #f2a81a;
+  --color-lilac-400: #fdb931;
+  --color-lilac-300: #fec95e;
+  --color-lilac-200: #ffdd99;
+  --color-lilac-100: #fff1d4;
+  --color-lilac-50: #fff9ec;
+
+  --color-mauve-600: #5e5e5e;
+  --color-ink: #242424;
+  --color-mist: #f6f6f6;
+
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-marquee: marquee 40s linear infinite;
+  --animate-pulse-ring: pulse-ring 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  --animate-travel-x: travel-x 3.2s ease-in-out infinite;
+  --animate-travel-y: travel-y 4s ease-in-out infinite;
+  --animate-bob: bob 3.2s ease-in-out infinite;
+
+  @keyframes travel-x {
+    0% { left: 10%; opacity: 0; }
+    10%, 90% { opacity: 1; }
+    100% { left: 90%; opacity: 0; }
+  }
+  @keyframes travel-y {
+    0% { top: 2.5rem; opacity: 0; }
+    10%, 90% { opacity: 1; }
+    100% { top: calc(100% - 7rem); opacity: 0; }
+  }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  @keyframes pulse-ring {
+    0% { transform: scale(0.9); opacity: 0.7; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 88px;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+}
+
+/* Tailwind v4 resets buttons to the default cursor — restore the pointer on everything clickable */
+@layer base {
+  a[href],
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="radio"]:not(:disabled),
+  [role="tab"],
+  summary,
+  select,
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="submit"],
+  input[type="button"] {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"],
+  input:disabled,
+  textarea:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
+}
+
+/* Hide the native number spinner on the age field */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
