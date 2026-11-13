@@ -7,12 +7,14 @@ type SectionHeadingProps = {
   intro?: ReactNode;
   align?: "center" | "left";
   dark?: boolean;
+  /** Allow a longer title to stay on one line on wide screens. */
+  wide?: boolean;
 };
 
-export default function SectionHeading({ eyebrow, title, intro, align = "center", dark = false }: SectionHeadingProps) {
+export default function SectionHeading({ eyebrow, title, intro, align = "center", dark = false, wide = false }: SectionHeadingProps) {
   const centered = align === "center";
   return (
-    <Reveal className={`${centered ? "mx-auto text-center" : ""} max-w-3xl`}>
+    <Reveal className={`${centered ? "mx-auto text-center" : ""} ${wide ? "max-w-5xl" : "max-w-3xl"}`}>
       {eyebrow && (
         <span
           className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] sm:px-4 sm:text-xs sm:tracking-[0.18em] ${

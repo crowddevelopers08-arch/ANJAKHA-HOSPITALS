@@ -72,7 +72,10 @@ export default function Faq() {
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   className="absolute inset-0 h-full w-full grayscale-[35%]"
+                  tabIndex={-1}
                 />
+                {/* Covers the map so any click on it goes to the booking form instead of Google Maps */}
+                <a href="#book" aria-label="Book your consultation" className="absolute inset-0 z-10" />
               </div>
               <div className="space-y-5 p-6 sm:p-8">
                 <div className="flex gap-4">
@@ -88,12 +91,10 @@ export default function Faq() {
                   </div>
                 </div>
                 <a
-                  href={site.mapLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="#book"
                   className="group flex items-center justify-center gap-2 rounded-xl bg-lilac-400 px-5 py-3.5 text-sm font-semibold text-plum-950 transition hover:bg-lilac-300"
                 >
-                  Get Directions
+                  Book Your Consultation
                   <ArrowIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </a>
               </div>

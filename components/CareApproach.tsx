@@ -66,7 +66,7 @@ export default function CareApproach() {
   return (
     <section id="how-it-works" className="relative overflow-hidden bg-mist py-9 sm:py-16 lg:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <SectionHeading eyebrow="How It Works" title="Your Treatment Journey Starts Here" />
+        <SectionHeading wide eyebrow="How It Works" title="Your Treatment Journey Starts Here" />
 
         <Reveal className="mt-6 sm:mt-10 lg:mt-12">
           <div className="relative overflow-hidden rounded-[2.5rem] bg-white px-5 py-6 shadow-xl sm:py-10 shadow-plum-950/5 ring-1 ring-plum-950/5 sm:px-10 lg:px-12 lg:py-14">
