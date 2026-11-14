@@ -43,17 +43,17 @@ export const treatments: Treatment[] = [
   },
   {
     slug: "piles",
-    name: "Piles Treatment",
+    name: "Laser Proctology",
     option: "Piles",
     icon: "piles",
-    headline: "Dealing With Piles, Discomfort or Bleeding?",
+    headline: "Advanced Care for Piles, Fissures & Fistula",
     description:
-      "Piles (haemorrhoids) can cause discomfort, itching, swelling and bleeding. Early medical evaluation can help identify the appropriate treatment.",
+      "Suffering from piles, anal fissures or fistula? Get expert evaluation and access to advanced laser-assisted treatment options at Anjakha Hospital.\n\nOur approach combines precise diagnosis, personalised treatment and modern surgical techniques to help you return to comfortable, everyday living.",
     points: [
-      "Medical evaluation and diagnosis",
-      "Non-surgical treatment assessment",
-      "Surgical treatment options when indicated",
-      "Recovery and lifestyle guidance",
+      "Comprehensive proctology evaluation",
+      "Laser-assisted treatment options",
+      "Minimally invasive surgical techniques",
+      "Personalised recovery and follow-up care",
     ],
   },
   {

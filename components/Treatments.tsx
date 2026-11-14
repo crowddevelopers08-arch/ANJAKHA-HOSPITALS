@@ -130,7 +130,7 @@ export default function Treatments() {
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lilac-300">{t.name}</p>
                     </div>
                     <h3 className="mt-2.5 text-lg font-bold leading-snug text-white min-[400px]:text-xl sm:mt-5 sm:leading-tight sm:text-4xl lg:text-[2.2rem] xl:text-[2.6rem]">{t.headline}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-white/75 sm:mt-4 sm:text-lg">{t.description}</p>
+                    <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/75 sm:mt-4 sm:text-lg">{t.description}</p>
                     <BookButton
                       treatment={t.option}
                       className="group mt-3 inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-lilac-400 px-5 py-2.5 text-sm font-semibold text-plum-950 transition hover:bg-lilac-300 sm:mt-7 sm:px-6 sm:py-3.5"
