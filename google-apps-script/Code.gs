@@ -96,10 +96,10 @@ var COLUMNS = [
 
 var STATUS_OPTIONS = ['New', 'Contacted', 'Appointment Booked', 'Visited', 'Not Interested', 'Not Reachable', 'Invalid'];
 
-var HEADER_BG = '#3d3d3d';     // logo graphite
+var HEADER_BG = '#6b0505';     // logo maroon
 var HEADER_FG = '#ffffff';
-var STRIPE_BG = '#fff9ec';     // light amber
-var NEW_BG = '#fff1d4';        // highlight for Status = New
+var STRIPE_BG = '#fff9e5';     // light gold
+var NEW_BG = '#fff1c2';        // highlight for Status = New
 var REPEAT_FG = '#b45309';
 
 /* ============================================================ Web app */

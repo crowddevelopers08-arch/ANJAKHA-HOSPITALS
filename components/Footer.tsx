@@ -4,12 +4,12 @@ import { site } from "@/lib/site";
 
 export default function Footer() {
   return (
-    <footer className="bg-[#1c1c1c] pb-24 pt-10 text-white/70 md:pb-10 md:pt-14">
+    <footer className="bg-plum-950 pb-24 pt-10 text-white/70 md:pb-10 md:pt-14">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-7 sm:gap-10 md:grid-cols-[1.3fr_1fr_1fr]">
           <div>
-            <Link href="/" className="inline-block rounded-xl bg-white px-3 py-2">
-              <Image quality={90} src="/images/logo.png" alt="Anjakha Hospital — Serving with compassion" width={1600} height={541} className="h-12 w-auto" />
+            <Link href="/" className="inline-block">
+              <Image quality={90} src="/images/logo.png" alt="Anjakha Hospitals — Care, Compassion, New Beginnings" width={800} height={800} className="h-28 w-28" />
             </Link>
             <p className="mt-5 max-w-sm text-sm font-semibold leading-relaxed text-white">{site.services}</p>
           </div>

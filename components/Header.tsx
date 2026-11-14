@@ -21,16 +21,16 @@ export default function Header({ minimal = false }: { minimal?: boolean }) {
   return (
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-        solid ? "bg-white/90 shadow-[0_8px_30px_-12px_rgba(36,36,36,0.25)] backdrop-blur-xl" : "bg-white/0"
+        solid ? "bg-white/90 shadow-[0_8px_30px_-12px_rgba(42,2,2,0.25)] backdrop-blur-xl" : "bg-white/0"
       }`}
     >
       <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:h-20 lg:px-8">
         <Link
           href="/"
           aria-label="Anjakha Hospitals — home"
-          className={`shrink-0 rounded-xl px-2.5 py-1.5 transition ${solid ? "" : "bg-white shadow-lg shadow-plum-950/10"}`}
+          className={`shrink-0 rounded-full p-0.5 transition ${solid ? "" : "bg-white shadow-lg shadow-plum-950/10"}`}
         >
-          <Image quality={90} src="/images/logo.png" alt="Anjakha Hospital — Serving with compassion" width={1600} height={541} priority className="h-10 w-auto sm:h-11 lg:h-12" />
+          <Image quality={90} src="/images/logo.png" alt="Anjakha Hospitals — Care, Compassion, New Beginnings" width={800} height={800} priority className="h-14 w-14 lg:h-17 lg:w-17" />
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-3">

@@ -81,7 +81,7 @@ export default function Hero() {
           <div className="rounded-[1.75rem] bg-white p-4 shadow-2xl shadow-black/40 ring-1 ring-white/20 min-[375px]:p-5 sm:p-6">
             <div className="mb-4 flex items-start gap-3">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-linear-to-br from-plum-700 to-plum-600 text-white shadow-lg shadow-plum-700/30">
-                <Image quality={90} src="/images/icon.png" alt="" width={40} height={40} className="h-7 w-7 rounded-md bg-white p-0.5" />
+                <Image quality={90} src="/images/icon.png" alt="" width={40} height={40} className="h-8 w-8 rounded-full" />
               </span>
               <div>
                 <h2 className="text-lg font-bold leading-tight text-plum-950 sm:text-xl">

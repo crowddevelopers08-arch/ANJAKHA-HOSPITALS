@@ -91,8 +91,8 @@ export default function CareApproach() {
               {/* Glowing pulse that keeps travelling along the line once it is drawn */}
               {settled && (
                 <>
-                  <span aria-hidden className="absolute top-8 hidden h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 animate-travel-x rounded-full bg-plum-600 shadow-[0_0_12px_4px_rgba(253,185,49,0.6)] lg:block" />
-                  <span aria-hidden className="absolute left-8 h-2.5 w-2.5 -translate-x-1/2 animate-travel-y rounded-full bg-plum-600 shadow-[0_0_12px_4px_rgba(253,185,49,0.6)] lg:hidden" />
+                  <span aria-hidden className="absolute top-8 hidden h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 animate-travel-x rounded-full bg-plum-600 shadow-[0_0_12px_4px_rgba(255,194,0,0.6)] lg:block" />
+                  <span aria-hidden className="absolute left-8 h-2.5 w-2.5 -translate-x-1/2 animate-travel-y rounded-full bg-plum-600 shadow-[0_0_12px_4px_rgba(255,194,0,0.6)] lg:hidden" />
                 </>
               )}
 

@@ -3,7 +3,7 @@ import { PhoneIcon, ArrowIcon } from "./Icons";
 
 export default function MobileBar() {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-plum-950/10 bg-white/95 p-3 shadow-[0_-10px_30px_-12px_rgba(36,36,36,0.3)] backdrop-blur-xl md:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-plum-950/10 bg-white/95 p-3 shadow-[0_-10px_30px_-12px_rgba(42,2,2,0.3)] backdrop-blur-xl md:hidden">
       <div className="grid grid-cols-2 gap-2.5">
         <a
           href={site.phones[0].href}

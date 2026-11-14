@@ -9,11 +9,11 @@ import { treatments } from "@/lib/content";
 
 /* Each panel gets its own shade so the stack reads as separate layers */
 const shades = [
-  "from-[#3d3d3d] to-[#242424]",
-  "from-[#474747] to-[#282828]",
-  "from-[#525252] to-[#2e2e2e]",
-  "from-[#474747] to-[#242424]",
-  "from-[#3d3d3d] to-[#282828]",
+  "from-[#6b0505] to-[#3a0303]",
+  "from-[#760808] to-[#410303]",
+  "from-[#800c0c] to-[#480404]",
+  "from-[#760808] to-[#3a0303]",
+  "from-[#6b0505] to-[#410303]",
 ];
 
 /* Where panels pin: just below the fixed header (72px on mobile, 80px on desktop). */
@@ -124,7 +124,7 @@ export default function Treatments() {
                 <div className="relative grid items-center gap-3 p-4 min-[400px]:p-5 sm:gap-8 sm:p-10 lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-10 lg:p-10 xl:grid-cols-[minmax(0,1fr)_27rem] xl:gap-12 xl:p-12">
                   <div className="max-w-2xl">
                     <div className="flex items-center gap-4">
-                      <span className="text-3xl font-extrabold leading-none tabular-nums text-transparent [-webkit-text-stroke:1.5px_rgba(253,185,49,0.7)] sm:text-7xl">
+                      <span className="text-3xl font-extrabold leading-none tabular-nums text-transparent [-webkit-text-stroke:1.5px_rgba(255,194,0,0.7)] sm:text-7xl">
                         0{i + 1}
                       </span>
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lilac-300">{t.name}</p>
