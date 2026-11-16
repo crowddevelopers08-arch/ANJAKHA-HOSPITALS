@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import {
   SELECT_TREATMENT_EVENT,
   treatmentOptions,
@@ -35,7 +34,6 @@ function validate(v: Values): Errors {
 }
 
 export default function LeadForm({ id = "lead-form", source = "hero" }: LeadFormProps) {
-  const router = useRouter();
   const [values, setValues] = useState(empty);
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
@@ -46,11 +44,6 @@ export default function LeadForm({ id = "lead-form", source = "hero" }: LeadForm
     setValues((s) => ({ ...s, [k]: val }));
     setErrors((s) => (s[k] ? { ...s, [k]: undefined } : s));
   };
-
-  // Warm up the thank-you route so the redirect after submit is instant.
-  useEffect(() => {
-    router.prefetch("/thank-you");
-  }, [router]);
 
   // "Book Your Consultation" buttons on the treatment panels preselect that treatment.
   useEffect(() => {
@@ -91,7 +84,8 @@ export default function LeadForm({ id = "lead-form", source = "hero" }: LeadForm
         body: JSON.stringify({ ...values, source, company, pageUrl: window.location.href, ...utm }),
         keepalive: true,
       }).catch(() => {});
-      router.push(`/thank-you?treatment=${encodeURIComponent(values.treatment)}`);
+      // Full page load (not client-side routing) so GTM / Meta Pixel register a fresh page view.
+      window.location.assign(`/thank-you?treatment=${encodeURIComponent(values.treatment)}`);
     } catch {
       setServerError("Something went wrong. Please try again or call us directly.");
       setLoading(false);
