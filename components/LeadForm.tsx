@@ -47,6 +47,11 @@ export default function LeadForm({ id = "lead-form", source = "hero" }: LeadForm
     setErrors((s) => (s[k] ? { ...s, [k]: undefined } : s));
   };
 
+  // Warm up the thank-you route so the redirect after submit is instant.
+  useEffect(() => {
+    router.prefetch("/thank-you");
+  }, [router]);
+
   // "Book Your Consultation" buttons on the treatment panels preselect that treatment.
   useEffect(() => {
     const onSelect = (e: Event) => {
@@ -78,12 +83,14 @@ export default function LeadForm({ id = "lead-form", source = "hero" }: LeadForm
       params.forEach((val, key) => {
         if (key.startsWith("utm_") || key === "gclid" || key === "fbclid") utm[key] = val;
       });
-      const res = await fetch("/api/lead", {
+      // keepalive lets the request finish even after we navigate away, so the visitor
+      // goes straight to the thank-you page instead of waiting on Sheets/TeleCRM.
+      fetch("/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...values, source, company, pageUrl: window.location.href, ...utm }),
-      });
-      if (!res.ok) throw new Error("Request failed");
+        keepalive: true,
+      }).catch(() => {});
       router.push(`/thank-you?treatment=${encodeURIComponent(values.treatment)}`);
     } catch {
       setServerError("Something went wrong. Please try again or call us directly.");
