@@ -15,6 +15,19 @@ export const site = {
     "Treatment recommendations are subject to medical evaluation. Surgical outcomes and recovery periods vary between individuals.",
 };
 
+/**
+ * GMB review funnel: /review → 4–5★ to Google, 1–3★ to /client-feedback.
+ * googleReviewUrl is the Business Profile "Ask for reviews" link; NEXT_PUBLIC_GOOGLE_REVIEW_URL overrides it.
+ */
+export const reviewFunnel = {
+  branch: "Madipakkam",
+  reviewPath: "/review",
+  feedbackPath: "/client-feedback",
+  googleReviewUrl: process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL || "https://g.page/r/CRSiK1605nQiEBM/review",
+  /** Ratings at or above this go to Google; below go to the private feedback form. */
+  googleMinRating: 4,
+};
+
 export const treatmentOptions = [
   "Circumcision",
   "Laparoscopy",

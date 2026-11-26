@@ -1,29 +1,26 @@
 /* ============================================================
-   Anjakha Hospitals — Lead capture + Meta Custom Audience sync
+   Anjakha Hospitals — Leads + Patient Feedback + Meta Custom Audience sync
    (Google Apps Script web app)
 
-   Receives leads from the website's /api/lead route (both "Book Your
-   Consultation" forms) and appends them to the "Anjakha Leads" tab.
-   Every 5 minutes, new leads are pushed (SHA-256 hashed) to a Meta
-   customer-list Custom Audience; the "Meta Audience" column records
-   each row's state.
+   One web app, two tabs:
 
-   Payload sent by app/api/lead/route.ts:
-     {
-       token,           // shared secret (optional, see SECURITY below)
-       sheetTab,        // "Anjakha Leads"
-       timestamp,       // IST, e.g. "13/11/2026, 4:05:12 pm"
-       name, phone, age,
-       treatment,       // Circumcision | Laparoscopy | Piles | Hernia | Gallstones | Not Sure / Need Guidance
-       visit,           // Immediately | Within 7 Days | Within 15 Days | Just Exploring
-       form,            // "hero" | "footer-cta"
-       source, pageUrl,
-       utm_source, utm_medium, utm_campaign, utm_term, utm_content, gclid, fbclid
-     }
+   1. "Anjakha Leads"     ← app/api/lead/route.ts     (type: "lead", or no type)
+        { token, type:"lead", sheetTab, timestamp, name, phone, age,
+          treatment, visit, form, source, pageUrl,
+          utm_source, utm_medium, utm_campaign, utm_term, utm_content, gclid, fbclid }
+
+   2. "Patient Feedback"  ← app/api/feedback/route.ts (type: "feedback")
+        GMB review funnel: patients who choose 1–3 stars on /review
+        fill the "Help Us Improve" form on /client-feedback.
+        { token, type:"feedback", sheetTab, timestamp, name, phone, email,
+          rating (1-5 or ""), suggestions, branch, source, pageUrl }
 
    Rows are written by HEADER NAME, not column position, so the team can
    reorder columns or add their own (e.g. "Notes", "Called By") safely.
    Missing standard columns are added automatically.
+
+   Only the leads tab is synced to the Meta Custom Audience; feedback rows
+   are never sent to Meta.
 
    ------------------------------------------------------------
    SETUP (one time)
@@ -31,14 +28,20 @@
       Replace everything in Code.gs with this file and Save.
    2. Select the function `setupSheets` and click Run.
       Accept the permissions prompt (Advanced > Go to project > Allow).
+      This creates/repairs BOTH tabs.
    3. Deploy  >  New deployment  >  type: Web app
-        Description:      Anjakha leads
+        Description:      Anjakha leads + feedback
         Execute as:       Me
         Who has access:   Anyone
       Click Deploy and copy the Web app URL (ends with /exec).
    4. Put that URL in the website environment:
         GOOGLE_SHEETS_WEBHOOK_URL=https://script.google.com/macros/s/XXXX/exec
-   5. (Optional) Run `testLead` to check a row appears.
+   5. (Optional) Run `testLead` and `testFeedback` to check rows appear.
+
+   ALREADY DEPLOYED? (updating from the leads-only version)
+   Paste this file, Save, run `setupSheets` once, then
+   Deploy  >  Manage deployments  >  (pencil) Edit  >  Version: New version  >  Deploy.
+   The /exec URL stays the same, so the website needs no change.
 
    SECURITY (recommended)
    - Project Settings (gear icon)  >  Script Properties  >  Add property
@@ -47,8 +50,14 @@
         GOOGLE_SHEETS_SECRET=<the same string>
    When WEBHOOK_SECRET is set, requests without the matching token are rejected.
 
-   META CUSTOM AUDIENCE SYNC
-   - Project Settings  >  Script Properties  >  add:
+   FEEDBACK EMAIL ALERT (optional)
+   - Script Properties  >  add:
+        FEEDBACK_ALERT_EMAILS = manager@example.com, quality@example.com
+     Every new feedback row is then emailed to those addresses, so a
+     1–3 star patient can be called back the same day.
+
+   META CUSTOM AUDIENCE SYNC (leads tab only)
+   - Script Properties  >  add:
         META_ACCESS_TOKEN   System-user token with ads_management
         META_AUDIENCE_ID    Customer-list Custom Audience ID for these leads
    - Run `setupMetaAudienceSync` once from the editor (installs the
@@ -70,31 +79,7 @@
    ============================================================ */
 
 var LEAD_TAB = 'Anjakha Leads';
-
-/* Column order for a new sheet. [header, width] */
-var COLUMNS = [
-  ['Timestamp', 170],
-  ['Name', 170],
-  ['Phone', 120],
-  ['Age', 60],
-  ['Treatment', 190],
-  ['Planning to Visit', 140],
-  ['Status', 150],
-  ['Repeat Enquiry', 120],
-  ['Form', 110],
-  ['Source', 170],
-  ['Page URL', 300],
-  ['UTM Source', 120],
-  ['UTM Medium', 120],
-  ['UTM Campaign', 180],
-  ['UTM Term', 140],
-  ['UTM Content', 140],
-  ['GCLID', 200],
-  ['FBCLID', 200],
-  ['Meta Audience', 210]
-];
-
-var STATUS_OPTIONS = ['New', 'Contacted', 'Appointment Booked', 'Visited', 'Not Interested', 'Not Reachable', 'Invalid'];
+var FEEDBACK_TAB = 'Patient Feedback';
 
 var HEADER_BG = '#6b0505';     // logo maroon
 var HEADER_FG = '#ffffff';
@@ -102,10 +87,72 @@ var STRIPE_BG = '#fff9e5';     // light gold
 var NEW_BG = '#fff1c2';        // highlight for Status = New
 var REPEAT_FG = '#b45309';
 
+/* Rating cell colours on the feedback tab */
+var RATING_STYLE = {
+  1: { bg: '#fde2e2', fg: '#991b1b' },
+  2: { bg: '#fde2e2', fg: '#991b1b' },
+  3: { bg: '#fff1c2', fg: '#92400e' },
+  4: { bg: '#e3f4e6', fg: '#166534' },
+  5: { bg: '#e3f4e6', fg: '#166534' }
+};
+
+/* Per-tab configuration. Columns: [header, width]. */
+var TABS = {
+  lead: {
+    name: LEAD_TAB,
+    columns: [
+      ['Timestamp', 170],
+      ['Name', 170],
+      ['Phone', 120],
+      ['Age', 60],
+      ['Treatment', 190],
+      ['Planning to Visit', 140],
+      ['Status', 150],
+      ['Repeat Enquiry', 120],
+      ['Form', 110],
+      ['Source', 170],
+      ['Page URL', 300],
+      ['UTM Source', 120],
+      ['UTM Medium', 120],
+      ['UTM Campaign', 180],
+      ['UTM Term', 140],
+      ['UTM Content', 140],
+      ['GCLID', 200],
+      ['FBCLID', 200],
+      ['Meta Audience', 210]
+    ],
+    statusOptions: ['New', 'Contacted', 'Appointment Booked', 'Visited', 'Not Interested', 'Not Reachable', 'Invalid'],
+    centered: ['Phone', 'Age', 'Treatment', 'Planning to Visit', 'Status', 'Repeat Enquiry', 'Form'],
+    wrapped: [],
+    repeatHeader: 'Repeat Enquiry'
+  },
+  feedback: {
+    name: FEEDBACK_TAB,
+    columns: [
+      ['Timestamp', 170],
+      ['Name', 170],
+      ['Phone', 120],
+      ['Email', 210],
+      ['Rating', 80],
+      ['Suggestions', 380],
+      ['Status', 150],
+      ['Action Taken', 260],
+      ['Repeat Feedback', 120],
+      ['Branch', 120],
+      ['Source', 160],
+      ['Page URL', 300]
+    ],
+    statusOptions: ['New', 'Called Back', 'Resolved', 'Escalated', 'Not Reachable', 'Invalid'],
+    centered: ['Phone', 'Rating', 'Status', 'Repeat Feedback', 'Branch'],
+    wrapped: ['Suggestions', 'Action Taken'],
+    repeatHeader: 'Repeat Feedback'
+  }
+};
+
 /* ============================================================ Web app */
 
 function doGet() {
-  return json_({ status: 'ok', service: 'Anjakha Hospitals lead API', tab: LEAD_TAB });
+  return json_({ status: 'ok', service: 'Anjakha Hospitals lead + feedback API', tabs: [LEAD_TAB, FEEDBACK_TAB] });
 }
 
 function doPost(e) {
@@ -123,16 +170,25 @@ function doPost(e) {
     var secret = PropertiesService.getScriptProperties().getProperty('WEBHOOK_SECRET');
     if (secret && data.token !== secret) return json_({ error: 'Unauthorized' });
 
+    var kind = String(data.type || '').toLowerCase() === 'feedback' ? 'feedback' : 'lead';
+    var cfg = TABS[kind];
+
     var name = clean_(data.name);
     var phone = String(data.phone || '').replace(/\D/g, '');
     if (name.length < 2 || phone.length < 10) return json_({ error: 'Missing name or phone' });
+    if (kind === 'feedback' && clean_(data.suggestions).length < 3) return json_({ error: 'Missing feedback' });
 
     // Serialise writes (with each other and with the Meta sync) so rows never collide.
     lock.waitLock(20000);
 
-    var sheet = getSheet_();
-    var row = appendLead_(sheet, data, phone);
-    return json_({ success: true, tab: LEAD_TAB, row: row });
+    var sheet = getSheet_(cfg);
+    var values = kind === 'feedback' ? feedbackValues_(data, phone) : leadValues_(data, phone);
+    var row = appendRow_(sheet, cfg, values, phone);
+
+    lock.releaseLock();
+    if (kind === 'feedback') notifyFeedback_(values, row);
+
+    return json_({ success: true, tab: cfg.name, row: row });
   } catch (err) {
     console.error(err);
     return json_({ error: String(err) });
@@ -143,18 +199,20 @@ function doPost(e) {
 
 /* ============================================================ Editor helpers */
 
-/** Run once after pasting the script: creates/repairs the tab and asks for permissions. */
+/** Run once after pasting the script: creates/repairs both tabs and asks for permissions. */
 function setupSheets() {
-  var sheet = getSheet_();
-  Logger.log('Ready: "' + LEAD_TAB + '" in ' + sheet.getParent().getName());
+  var lead = getSheet_(TABS.lead);
+  getSheet_(TABS.feedback);
+  Logger.log('Ready: "' + LEAD_TAB + '" and "' + FEEDBACK_TAB + '" in ' + lead.getParent().getName());
 }
 
-/** Writes a sample row so you can check the sheet without the website. */
+/** Writes a sample lead so you can check the sheet without the website. */
 function testLead() {
   var secret = PropertiesService.getScriptProperties().getProperty('WEBHOOK_SECRET') || '';
   var res = doPost({ postData: { contents: JSON.stringify({
     token: secret,
-    timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+    type: 'lead',
+    timestamp: istNowLong_(),
     name: 'Test Lead', phone: '9876543210', age: '35',
     treatment: 'Hernia', visit: 'Within 7 Days',
     form: 'hero', source: 'Anjakha Hospitals LP',
@@ -163,22 +221,80 @@ function testLead() {
   Logger.log(res.getContent());
 }
 
-/* ============================================================ Internals */
+/** Writes a sample feedback row (2 stars). */
+function testFeedback() {
+  var secret = PropertiesService.getScriptProperties().getProperty('WEBHOOK_SECRET') || '';
+  var res = doPost({ postData: { contents: JSON.stringify({
+    token: secret,
+    type: 'feedback',
+    timestamp: istNowLong_(),
+    name: 'Test Patient', phone: '9876543210', email: 'test@example.com',
+    rating: 2, suggestions: 'Waiting time at reception was long.',
+    branch: 'Madipakkam', source: 'GMB Review Funnel',
+    pageUrl: 'https://anjakhahospitals.com/client-feedback?rating=2'
+  }) } });
+  Logger.log(res.getContent());
+}
 
-function getSheet_() {
+/* ============================================================ Row values */
+
+function leadValues_(data, phone) {
+  return {
+    'Timestamp': clean_(data.timestamp) || istNowLong_(),
+    'Name': clean_(data.name),
+    'Phone': phone,
+    'Age': clean_(data.age),
+    'Treatment': clean_(data.treatment) || 'Not specified',
+    'Planning to Visit': clean_(data.visit),
+    'Status': 'New',
+    'Form': clean_(data.form),
+    'Source': clean_(data.source),
+    'Page URL': clean_(data.pageUrl),
+    'UTM Source': clean_(data.utm_source),
+    'UTM Medium': clean_(data.utm_medium),
+    'UTM Campaign': clean_(data.utm_campaign),
+    'UTM Term': clean_(data.utm_term),
+    'UTM Content': clean_(data.utm_content),
+    'GCLID': clean_(data.gclid),
+    'FBCLID': clean_(data.fbclid)
+    // 'Repeat Enquiry' is filled by appendRow_; 'Meta Audience' by syncMetaAudience().
+  };
+}
+
+function feedbackValues_(data, phone) {
+  var rating = parseInt(data.rating, 10);
+  return {
+    'Timestamp': clean_(data.timestamp) || istNowLong_(),
+    'Name': clean_(data.name),
+    'Phone': phone,
+    'Email': clean_(data.email),
+    'Rating': rating >= 1 && rating <= 5 ? String(rating) : 'Not given',
+    'Suggestions': clean_(data.suggestions),
+    'Status': 'New',
+    'Action Taken': '',
+    'Branch': clean_(data.branch),
+    'Source': clean_(data.source) || 'GMB Review Funnel',
+    'Page URL': clean_(data.pageUrl)
+    // 'Repeat Feedback' is filled by appendRow_.
+  };
+}
+
+/* ============================================================ Sheet internals */
+
+function getSheet_(cfg) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(LEAD_TAB) || ss.insertSheet(LEAD_TAB);
-  ensureHeaders_(sheet);
+  var sheet = ss.getSheetByName(cfg.name) || ss.insertSheet(cfg.name);
+  ensureHeaders_(sheet, cfg);
   return sheet;
 }
 
 /** Creates the header row on a new tab, or appends any missing standard columns to an existing one. */
-function ensureHeaders_(sheet) {
-  var wanted = COLUMNS.map(function (c) { return c[0]; });
+function ensureHeaders_(sheet, cfg) {
+  var wanted = cfg.columns.map(function (c) { return c[0]; });
 
   if (sheet.getLastRow() === 0 || sheet.getLastColumn() === 0) {
     sheet.getRange(1, 1, 1, wanted.length).setValues([wanted]);
-    COLUMNS.forEach(function (c, i) { sheet.setColumnWidth(i + 1, c[1]); });
+    cfg.columns.forEach(function (c, i) { sheet.setColumnWidth(i + 1, c[1]); });
     styleHeader_(sheet, wanted.length);
     sheet.setFrozenRows(1);
     try { sheet.getRange(1, 1, sheet.getMaxRows(), wanted.length).createFilter(); } catch (ignore) {}
@@ -191,7 +307,7 @@ function ensureHeaders_(sheet) {
     var start = sheet.getLastColumn() + 1;
     sheet.getRange(1, start, 1, missing.length).setValues([missing]);
     missing.forEach(function (h, i) {
-      var col = COLUMNS.filter(function (c) { return c[0] === h; })[0];
+      var col = cfg.columns.filter(function (c) { return c[0] === h; })[0];
       sheet.setColumnWidth(start + i, col ? col[1] : 150);
     });
     styleHeader_(sheet, sheet.getLastColumn());
@@ -216,31 +332,10 @@ function styleHeader_(sheet, colCount) {
   sheet.setRowHeight(1, 42);
 }
 
-function appendLead_(sheet, data, phone) {
+function appendRow_(sheet, cfg, values, phone) {
   var headers = headers_(sheet);
   var isRepeat = phoneExists_(sheet, headers, phone);
-
-  var values = {
-    'Timestamp': clean_(data.timestamp) || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-    'Name': clean_(data.name),
-    'Phone': phone,
-    'Age': clean_(data.age),
-    'Treatment': clean_(data.treatment) || 'Not specified',
-    'Planning to Visit': clean_(data.visit),
-    'Status': 'New',
-    'Repeat Enquiry': isRepeat ? 'Yes' : 'No',
-    'Form': clean_(data.form),
-    'Source': clean_(data.source),
-    'Page URL': clean_(data.pageUrl),
-    'UTM Source': clean_(data.utm_source),
-    'UTM Medium': clean_(data.utm_medium),
-    'UTM Campaign': clean_(data.utm_campaign),
-    'UTM Term': clean_(data.utm_term),
-    'UTM Content': clean_(data.utm_content),
-    'GCLID': clean_(data.gclid),
-    'FBCLID': clean_(data.fbclid)
-    // 'Meta Audience' is left blank here; syncMetaAudience() fills it.
-  };
+  values[cfg.repeatHeader] = isRepeat ? 'Yes' : 'No';
 
   var rowValues = headers.map(function (h) {
     return Object.prototype.hasOwnProperty.call(values, h) ? values[h] : '';
@@ -250,43 +345,61 @@ function appendLead_(sheet, data, phone) {
   // Grow the tab before it fills up. Inserting *inside* the last row keeps the header filter covering new rows.
   if (rowIndex >= sheet.getMaxRows()) sheet.insertRowsBefore(sheet.getMaxRows(), 500);
   var range = sheet.getRange(rowIndex, 1, 1, headers.length);
-  range.setNumberFormat('@');            // keep phone/age as plain text
+  range.setNumberFormat('@');            // keep phone/age/rating as plain text
   range.setValues([rowValues]);
-  styleRow_(sheet, rowIndex, headers, isRepeat);
+  styleRow_(sheet, cfg, rowIndex, headers, isRepeat, values);
   return rowIndex;
 }
 
-function styleRow_(sheet, rowIndex, headers, isRepeat) {
+function styleRow_(sheet, cfg, rowIndex, headers, isRepeat, values) {
   var range = sheet.getRange(rowIndex, 1, 1, headers.length);
   range.setBackground(rowIndex % 2 === 0 ? STRIPE_BG : '#ffffff')
     .setFontColor('#262626')
     .setFontSize(10)
+    .setFontWeight('normal')
     .setVerticalAlignment('middle')
     .setHorizontalAlignment('left')
+    .setWrap(false)
     .setBorder(false, false, true, false, false, false, '#ececec', SpreadsheetApp.BorderStyle.SOLID);
-  sheet.setRowHeight(rowIndex, 34);
 
-  ['Phone', 'Age', 'Treatment', 'Planning to Visit', 'Status', 'Repeat Enquiry', 'Form'].forEach(function (h) {
+  cfg.centered.forEach(function (h) {
     var i = headers.indexOf(h);
     if (i !== -1) sheet.getRange(rowIndex, i + 1).setHorizontalAlignment('center');
   });
+
+  var wrappedAny = false;
+  cfg.wrapped.forEach(function (h) {
+    var i = headers.indexOf(h);
+    if (i !== -1) {
+      sheet.getRange(rowIndex, i + 1).setWrap(true).setVerticalAlignment('top');
+      wrappedAny = true;
+    }
+  });
+  // Fixed height for single-line rows; wrapped (feedback) rows grow to fit the text.
+  if (!wrappedAny) sheet.setRowHeight(rowIndex, 34);
 
   var statusCol = headers.indexOf('Status');
   if (statusCol !== -1) {
     var cell = sheet.getRange(rowIndex, statusCol + 1);
     cell.setDataValidation(
-      SpreadsheetApp.newDataValidation().requireValueInList(STATUS_OPTIONS, true).setAllowInvalid(true).build()
+      SpreadsheetApp.newDataValidation().requireValueInList(cfg.statusOptions, true).setAllowInvalid(true).build()
     );
     cell.setBackground(NEW_BG).setFontWeight('bold');
   }
 
-  var repeatCol = headers.indexOf('Repeat Enquiry');
+  var repeatCol = headers.indexOf(cfg.repeatHeader);
   if (repeatCol !== -1 && isRepeat) {
     sheet.getRange(rowIndex, repeatCol + 1).setFontColor(REPEAT_FG).setFontWeight('bold');
   }
+
+  var ratingCol = headers.indexOf('Rating');
+  var style = values && RATING_STYLE[values['Rating']];
+  if (ratingCol !== -1 && style) {
+    sheet.getRange(rowIndex, ratingCol + 1).setBackground(style.bg).setFontColor(style.fg).setFontWeight('bold');
+  }
 }
 
-/** True if this phone number already appears in an earlier row. */
+/** True if this phone number already appears in an earlier row of the same tab. */
 function phoneExists_(sheet, headers, phone) {
   var col = headers.indexOf('Phone');
   var last = sheet.getLastRow();
@@ -296,6 +409,45 @@ function phoneExists_(sheet, headers, phone) {
     .matchEntireCell(true)
     .findNext();
   return Boolean(found);
+}
+
+/** Emails new feedback to FEEDBACK_ALERT_EMAILS (if set). Failures are logged, never block the row. */
+function notifyFeedback_(values, row) {
+  var to = PropertiesService.getScriptProperties().getProperty('FEEDBACK_ALERT_EMAILS');
+  if (!to) return;
+  try {
+    var rating = values['Rating'];
+    var stars = /^\d$/.test(rating) ? rating + '/5' : 'Not given';
+    var url = SpreadsheetApp.getActiveSpreadsheet().getUrl();
+    var esc = function (s) {
+      return String(s || '').replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    };
+    var line = function (k, v) { return '<tr><td style="padding:4px 12px 4px 0;color:#6b4a4a"><b>' + k + '</b></td><td>' + esc(v) + '</td></tr>'; };
+
+    MailApp.sendEmail({
+      to: to,
+      subject: 'Patient feedback (' + stars + ') — ' + values['Name'] + ', ' + (values['Branch'] || 'Anjakha'),
+      htmlBody:
+        '<div style="font-family:Arial,sans-serif;font-size:14px;color:#2a0202">' +
+        '<h2 style="color:#6b0505;margin:0 0 12px">New patient feedback</h2>' +
+        '<table>' +
+        line('Rating', stars) +
+        line('Name', values['Name']) +
+        line('Phone', values['Phone']) +
+        line('Email', values['Email']) +
+        line('Branch', values['Branch']) +
+        line('Received', values['Timestamp']) +
+        '</table>' +
+        '<p style="margin:16px 0 4px"><b>Feedback</b></p>' +
+        '<p style="white-space:pre-wrap;background:#fdf8f2;padding:12px;border-left:4px solid #6b0505;margin:0">' + esc(values['Suggestions']) + '</p>' +
+        '<p style="margin-top:16px"><a href="' + url + '">Open the sheet</a> (row ' + row + ' in "' + FEEDBACK_TAB + '")</p>' +
+        '</div>'
+    });
+  } catch (err) {
+    console.error('Feedback email failed: ' + err);
+  }
 }
 
 /** Trims input and blocks spreadsheet formula injection (=, +, -, @). */
@@ -308,7 +460,11 @@ function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
-/* ============================================================ Meta Custom Audience sync */
+function istNowLong_() {
+  return new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+}
+
+/* ============================================================ Meta Custom Audience sync (leads tab only) */
 
 var META_GRAPH_VERSION = 'v21.0';
 var META_SYNC_TRIGGER = 'syncMetaAudience';
@@ -394,7 +550,7 @@ function syncMetaAudience() {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(LEAD_TAB);
     if (!sheet || sheet.getLastRow() < 2) return { added: 0, failed: 0, skipped: 0 };
 
-    ensureHeaders_(sheet); // adds the "Meta Audience" column to older tabs
+    ensureHeaders_(sheet, TABS.lead); // adds the "Meta Audience" column to older tabs
     var headers = headers_(sheet);
     var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
     var nameIdx = headers.indexOf('Name');

@@ -104,6 +104,77 @@ body {
   }
 }
 
+/* ---------------------------------------------------------------
+   GMB review funnel (/review-*, /client-feedback-*)
+   Same token layout as the reference funnel, mapped to the logo:
+   maroon #6B0505 for brand, gold #FFC200 for the stars.
+   --------------------------------------------------------------- */
+.review {
+  --r-brand-deep: #3a0303;
+  --r-brand: #6b0505;
+  --r-brand-soft: #f8e7e7;
+  --r-paper: #fdf8f2;
+  --r-canvas: #fffdf8;
+  --r-ink: #2a0202;
+  --r-line: #ecdcc2;
+  --r-muted: #6b4a4a;
+  --r-star: #ffc200;
+  --r-star-deep: #7a5800;
+  --r-star-line: #ffe285;
+  --r-star-soft: #fff6d6;
+}
+
+.review h1 {
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+
+@layer components {
+  .r-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 28px;
+    border: 1.5px solid transparent;
+    border-radius: 999px;
+    font-size: clamp(0.9375rem, 0.9rem + 0.16vw, 1rem);
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.25s, background 0.25s, color 0.2s, border-color 0.2s;
+  }
+  .r-btn-primary {
+    background: var(--r-brand);
+    color: #fff;
+    box-shadow: 0 12px 28px -12px rgba(107, 5, 5, 0.5);
+  }
+  .r-btn-primary:hover:not(:disabled) {
+    background: var(--r-brand-deep);
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px -14px rgba(107, 5, 5, 0.6);
+  }
+  .r-btn-ghost {
+    background: #fff;
+    color: var(--r-ink);
+    border-color: var(--r-line);
+  }
+  .r-btn-ghost:hover {
+    border-color: var(--r-brand);
+    color: var(--r-brand-deep);
+    transform: translateY(-2px);
+  }
+  .r-scale-in {
+    animation: r-scale-in 0.6s ease-out forwards;
+  }
+}
+
+@keyframes r-scale-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 /* Hide the native number spinner on the age field */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
